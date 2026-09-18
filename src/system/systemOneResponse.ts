@@ -1,6 +1,6 @@
-import type { Questions } from "./questions.js"
-import type { ResultFor } from "./resultFor.js"
-import type { Usage } from "./usageSchema.js"
+import type { Questions } from "../shared/questions.js"
+import type { ResultFor } from "../shared/resultFor.js"
+import type { Usage } from "../shared/usageSchema.js"
 
 export type SystemOneResponse<Q extends Questions = Questions> = {
   readonly model: string

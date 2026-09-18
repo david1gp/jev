@@ -1,5 +1,5 @@
 import type { PromiseResult } from "@adaptive-ds/result"
-import type { Questions } from "./questions.js"
+import type { Questions } from "../shared/questions.js"
 import type { SystemOneEvaluateOptions } from "./systemOneEvaluateOptions.js"
 import type { SystemOneRequest } from "./systemOneRequest.js"
 import type { SystemOneResponse } from "./systemOneResponse.js"

@@ -12,14 +12,6 @@ export type {
   Question,
   Questions,
   ResultFor,
-  SystemOneClient,
-  SystemOneClientOptions,
-  SystemOneEvaluateOptions,
-  SystemOneFetch,
-  SystemOneRequest,
-  SystemOneRequestPayload,
-  SystemOneResponse,
-  SystemOneResult,
   Usage,
 } from "./shared/index.js"
 export {
@@ -31,11 +23,23 @@ export {
   probabilitySchema,
   questionSchema,
   questionsSchema,
+  usageSchema,
+} from "./shared/index.js"
+export type {
+  SystemOneClient,
+  SystemOneClientOptions,
+  SystemOneEvaluateOptions,
+  SystemOneFetch,
+  SystemOneRequest,
+  SystemOneRequestPayload,
+  SystemOneResponse,
+  SystemOneResult,
+} from "./system/index.js"
+export {
   systemOneClientCreate,
   systemOneRequestPayloadSchema,
   systemOneRequestSchema,
   systemOneResponseSchema,
-  usageSchema,
-} from "./shared/index.js"
+} from "./system/index.js"
 export type { State } from "./state/index.js"
 export { stateSchema } from "./state/index.js"

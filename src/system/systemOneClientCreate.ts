@@ -6,7 +6,7 @@ import {
   resultTryParsingFetchErr,
 } from "@adaptive-ds/result"
 import * as v from "valibot"
-import type { Questions } from "./questions.js"
+import type { Questions } from "../shared/questions.js"
 import type { SystemOneClient } from "./systemOneClient.js"
 import type { SystemOneClientOptions } from "./systemOneClientOptions.js"
 import type { SystemOneEvaluateOptions } from "./systemOneEvaluateOptions.js"

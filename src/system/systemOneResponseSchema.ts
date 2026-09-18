@@ -1,6 +1,6 @@
 import * as v from "valibot"
-import { answerSchema } from "./answerSchema.js"
-import { usageSchema } from "./usageSchema.js"
+import { answerSchema } from "../shared/answerSchema.js"
+import { usageSchema } from "../shared/usageSchema.js"
 
 export const systemOneResponseSchema = v.object({
   model: v.string(),
