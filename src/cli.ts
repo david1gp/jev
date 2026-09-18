@@ -1,21 +1,6 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
-import { cliVersionMetadataRender } from "./cliVersionMetadata.js"
+import { jevCliApplication } from "./cliApplication.js"
+import { cliRun } from "./cli/cliRun.js"
 
-const commandName = "jev"
-const cliArguments = Bun.argv.slice(2)
-const versionVerbose = cliVersionVerboseRead(cliArguments)
-
-if (versionVerbose !== undefined) {
-  process.stdout.write(cliVersionMetadataRender(versionVerbose))
-} else {
-  if (Bun.argv.includes("--help")) {
-    console.log(`Usage: ${commandName}`)
-  }
-}
-
-function cliVersionVerboseRead(argumentsList: readonly string[]): boolean | undefined {
-  const command = argumentsList[0]
-  if (command !== "version" && command !== "--version" && command !== "-V") return undefined
-  return argumentsList.slice(1).some((argument) => argument === "--verbose" || argument === "-v")
-}
+await cliRun(jevCliApplication, process.argv.slice(2), process)
