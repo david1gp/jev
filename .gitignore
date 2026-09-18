@@ -2,6 +2,7 @@
 node_modules/
 
 # Bun package manager cache
+bun.lock
 bun.lockb
 
 # Output

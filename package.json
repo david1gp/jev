@@ -1,13 +1,20 @@
 {
   "name": "@adaptive-ds/jev",
   "version": "0.1.0",
-  "description": "Initial TypeScript library and CLI scaffold for the Adaptive DS ecosystem.",
+  "description": "Result-based TypeSafe System One client library and jev command-line interface.",
   "keywords": [
+    "typesafe",
+    "system-one",
+    "typesafe-api",
+    "api-client",
     "typescript",
+    "result",
+    "valibot",
     "cli",
-    "library",
     "bun",
-    "adaptive-ds"
+    "node",
+    "adaptive-ds",
+    "stricli"
   ],
   "homepage": "https://github.com/david1gp/jev",
   "repository": {
@@ -39,6 +46,7 @@
   "scripts": {
     "dev": "bun run src/cli.ts",
     "test": "bun test",
+    "test:live": "bun run build && JEV_LIVE=1 bun test test/live.integration.test.ts",
     "test:w": "bun test --watch",
     "type-check": "tsc --noEmit",
     "build": "rm -rf ./dist && tsc -p ./tsconfig.lib.json && chmod +x ./dist/cli.js",
@@ -49,18 +57,16 @@
     "check": "bun run format:check && bun run type-check && bun run test"
   },
   "devDependencies": {
+    "@adaptive-ds/result": "^0.6.0",
     "@biomejs/biome": "^2.5.2",
     "@types/bun": "^1.3.13",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "valibot": "^1.2.0"
   },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./*.js": {
-      "types": "./dist/*.d.ts",
-      "import": "./dist/*.js"
     },
     "./package.json": "./package.json",
     "./cli.js": {
@@ -79,5 +85,12 @@
   },
   "bin": {
     "jev": "./dist/cli.js"
+  },
+  "peerDependencies": {
+    "@adaptive-ds/result": "^0.6.0",
+    "valibot": "^1.2.0"
+  },
+  "dependencies": {
+    "@stricli/core": "^1.3.0"
   }
 }
