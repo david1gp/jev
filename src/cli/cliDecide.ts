@@ -1,35 +1,34 @@
 import { createResult, createResultError, type Result } from "@adaptive-ds/result"
-import { systemOneClientCreate, type SystemOneRequest, type SystemOneResponse } from "../index.js"
+import { decisionsClientCreate, type DecisionsRequest, type DecisionsResponse } from "../index.js"
 
-type CliEvaluateInput = {
+type CliDecideInput = {
   readonly requestInput: unknown
   readonly apiKey: string | undefined
   readonly baseUrl: string | undefined
   readonly model: string | undefined
   readonly timeout: number | undefined
-  readonly images: readonly string[] | undefined
 }
 
-type CliEvaluationOutput = SystemOneResponse | readonly SystemOneResponse[]
+type CliDecideOutput = DecisionsResponse | readonly DecisionsResponse[]
 
-export async function cliEvaluate(input: CliEvaluateInput): Promise<Result<CliEvaluationOutput>> {
-  const op = "cliEvaluate"
+export async function cliDecide(input: CliDecideInput): Promise<Result<CliDecideOutput>> {
+  const op = "cliDecide"
   if (input.apiKey === undefined || input.apiKey.length === 0) return createResultError(op, "An API key is required")
 
   const requests = Array.isArray(input.requestInput) ? input.requestInput : [input.requestInput]
-  if (requests.length === 0) return createResultError(op, "At least one evaluation request is required")
+  if (requests.length === 0) return createResultError(op, "At least one decisions request is required")
 
-  const clientResult = systemOneClientCreate({
+  const clientResult = decisionsClientCreate({
     apiKey: input.apiKey,
     ...(input.baseUrl === undefined ? {} : { baseUrl: input.baseUrl }),
     ...(input.timeout === undefined ? {} : { timeoutMs: input.timeout }),
   })
   if (!clientResult.success) return createResultError(op, clientResult.errorMessage)
 
-  const responses: SystemOneResponse[] = []
+  const responses: DecisionsResponse[] = []
   for (const requestInput of requests) {
-    const request = cliImagesApply(cliModelApply(requestInput, input.model), input.images)
-    const result = await clientResult.data.evaluate(request as SystemOneRequest)
+    const request = cliDecideModelApply(requestInput, input.model)
+    const result = await clientResult.data.evaluate(request as DecisionsRequest)
     if (!result.success) {
       return {
         ...createResultError(op, result.errorMessage, result.errorData),
@@ -46,14 +45,8 @@ export async function cliEvaluate(input: CliEvaluateInput): Promise<Result<CliEv
   return createResult(response)
 }
 
-function cliModelApply(requestInput: unknown, model: string | undefined): unknown {
-  if (model === undefined || requestInput === null || typeof requestInput !== "object" || Array.isArray(requestInput))
-    return requestInput
+function cliDecideModelApply(requestInput: unknown, model: string | undefined): unknown {
+  if (model === undefined || requestInput === null || typeof requestInput !== "object") return requestInput
+  if (Array.isArray(requestInput)) return requestInput.map((entry) => cliDecideModelApply(entry, model))
   return { ...requestInput, model }
-}
-
-function cliImagesApply(requestInput: unknown, images: readonly string[] | undefined): unknown {
-  if (images === undefined || requestInput === null || typeof requestInput !== "object" || Array.isArray(requestInput))
-    return requestInput
-  return { ...requestInput, images: [...images] }
 }
