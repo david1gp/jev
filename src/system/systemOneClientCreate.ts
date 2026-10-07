@@ -322,6 +322,7 @@ export function systemOneClientCreate(options: SystemOneClientOptions): Result<S
       state: validatedRequest.state,
       model,
       questions: validatedRequest.questions,
+      ...(validatedRequest.images === undefined ? {} : { images: [...validatedRequest.images] }),
     }
     const payloadResult = v.safeParse(systemOneRequestPayloadSchema, payload)
     if (!payloadResult.success) {
