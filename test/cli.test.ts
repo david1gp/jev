@@ -2,6 +2,7 @@ import { expect, test } from "bun:test"
 import { mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
+import packageJson from "../package.json" with { type: "json" }
 
 const projectRoot = resolve(import.meta.dir, "..")
 
@@ -19,11 +20,11 @@ test("CLI help and version run as Node-distributable ESM entrypoints", async () 
 
   const version = await cliRun(["--version"])
   expect(version.exitCode).toBe(0)
-  expect(version.stdout.trim()).toBe("0.1.0")
+  expect(version.stdout.trim()).toBe(packageJson.version)
 
   const legacyVersion = await cliRun(["-V"])
   expect(legacyVersion.exitCode).toBe(0)
-  expect(legacyVersion.stdout.trim()).toBe("0.1.0")
+  expect(legacyVersion.stdout.trim()).toBe(packageJson.version)
 })
 
 test("CLI evaluates stdin JSON, uses JEV_API_KEY, and emits the API response as JSON", async () => {
