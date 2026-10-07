@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test"
 import * as v from "valibot"
+import type { ClefRequest, SystemOneRequest } from "../src/index.js"
 import { choice, noul, systemOneClientCreate, systemOneImageSchema, systemOneRequestSchema } from "../src/index.js"
 
 const imageUrl =
@@ -31,6 +32,15 @@ test("system one image schema accepts data URLs and content objects", () => {
       images: [imageUrl, imageUrl, imageUrl, imageUrl, imageUrl],
     }).success,
   ).toBe(false)
+})
+
+test("image param typing follows the provider request type", () => {
+  const text: SystemOneRequest = { state: "Inspect this photo.", questions: { damaged: noul("Is it damaged?") } }
+  const vision: ClefRequest = { ...text, images: [imageUrl] }
+  expect(vision.images).toHaveLength(1)
+  // @ts-expect-error images are Clef-only while hosted Jev is text-only
+  const rejected: SystemOneRequest = { ...text, images: [imageUrl] }
+  expect(rejected).toBeDefined()
 })
 
 test("system one client sends images and omits them when absent", async () => {
@@ -69,8 +79,9 @@ test("system one client sends images and omits them when absent", async () => {
   const withImages = await result.data.evaluate({
     state: "Inspect this photo.",
     questions: { damaged: noul("Is it damaged?") },
+    // Images are typed on ClefRequest only; the shared wire runtime still forwards them.
     images: [imageUrl],
-  })
+  } as never)
   expect(withImages.success).toBe(true)
   expect(bodies[0]).toMatchObject({ model: "jev-latest", images: [imageUrl] })
 

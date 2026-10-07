@@ -1,6 +1,6 @@
 export type { ChoiceAnswer, ChoiceCriteria, ChoiceQuestion, ChoiceResponse } from "./choice/index.js"
 export { choice, choiceAnswerSchema, choiceCriteriaSchema, choiceSchema } from "./choice/index.js"
-export type { ClefClient, ClefClientOptions } from "./clef/index.js"
+export type { ClefClient, ClefClientOptions, ClefRequest } from "./clef/index.js"
 export { clefClientCreate, clefFetchWrap } from "./clef/index.js"
 export type {
   DecisionsAnswer,

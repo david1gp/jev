@@ -11,6 +11,7 @@ import type { SystemOneClient } from "./systemOneClient.js"
 import type { SystemOneClientOptions } from "./systemOneClientOptions.js"
 import type { SystemOneEvaluateOptions } from "./systemOneEvaluateOptions.js"
 import type { SystemOneFetch } from "./systemOneFetch.js"
+import type { SystemOneImage } from "./systemOneImageSchema.js"
 import type { SystemOneRequest } from "./systemOneRequest.js"
 import { systemOneRequestPayloadSchema } from "./systemOneRequestPayloadSchema.js"
 import { systemOneRequestSchema } from "./systemOneRequestSchema.js"
@@ -314,7 +315,9 @@ export function systemOneClientCreate(options: SystemOneClientOptions): Result<S
     if (!signalIsValid(evaluateOptions.signal))
       return createResultError("systemOneEvaluate", "The request signal was invalid")
 
-    const validatedRequest = requestResult.output as SystemOneRequest<Q>
+    const validatedRequest = requestResult.output as SystemOneRequest<Q> & {
+      images?: readonly SystemOneImage[]
+    }
     const model = validatedRequest.model ?? defaultModel
     if (model.trim().length === 0) return createResultError("systemOneEvaluate", "The request model must not be empty")
 

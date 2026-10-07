@@ -1,6 +1,10 @@
 import { noul, systemOneClientCreate } from "../src/index.js"
 import { exampleKeyRead, imageDataUrlRead } from "./exampleShared.js"
 
+// The hosted Jev endpoint currently rejects image requests with HTTP 400, so
+// images live on ClefRequest (not SystemOneRequest) until upstream enables
+// vision. The shared runtime still forwards them; use Clef for image calls.
+
 const clientResult = systemOneClientCreate({ apiKey: exampleKeyRead("JEV_API_KEY") })
 if (!clientResult.success) {
   console.error(`${clientResult.op}: ${clientResult.errorMessage}`)

@@ -169,19 +169,20 @@ level labels (or `{ label, description }` objects, 2–10 levels). The CLI equiv
 
 ## Images
 
-System One requests accept an optional `images` array (up to 4 PNG/JPEG/WebP entries as `data:` URLs or
-`{ content_type, base64 }` objects), placed before the state per the Clef vision extension:
+Image input is typed per provider. `SystemOneRequest` carries no `images` field — hosted Jev is text-only and rejects
+image requests with HTTP 400. `ClefRequest` extends it with an optional `images` array (up to 4 PNG/JPEG/WebP entries as
+`data:` URLs or `{ content_type, base64 }` objects), placed before the state per the Clef vision extension:
 
 ```ts
-const result = await client.data.evaluate({
+const result = await clefClient.data.evaluate({
   state: "Inspect the product in this photo.",
   questions: { visible_damage: noul("Does the product have visible damage?") },
   images: ["data:image/png;base64,..."],
 })
 ```
 
-Clef evaluates images today. The hosted Jev endpoint currently rejects image requests with HTTP 400; the library still
-validates and sends them so calls start working once upstream enables vision. Decisions takes images inline in the
+The shared wire runtime still validates and forwards `images` for System One requests too, so Jev image calls start
+working without a library change once upstream enables vision. Decisions takes images inline in the
 input instead:
 
 ```ts
@@ -271,7 +272,7 @@ The root module also exports the Clef client (`clefClientCreate`, `clefFetchWrap
 `Decisions*` types), and the System One image schema (`systemOneImageSchema`, type `SystemOneImage`).
 
 The root type exports are `Answer`, `ChoiceAnswer`, `ChoiceCriteria`, `ChoiceQuestion`, `ChoiceResponse`, `ClefClient`,
-`ClefClientOptions`, `DecisionsAnswer`, `DecisionsChoiceAnswer`, `DecisionsChoiceCriteria`, `DecisionsChoiceQuestion`,
+`ClefClientOptions`, `ClefRequest`, `DecisionsAnswer`, `DecisionsChoiceAnswer`, `DecisionsChoiceCriteria`, `DecisionsChoiceQuestion`,
 `DecisionsClient`, `DecisionsClientOptions`, `DecisionsEvaluateOptions`, `DecisionsFetch`, `DecisionsImagePart`,
 `DecisionsInput`, `DecisionsInputPart`, `DecisionsMessage`, `DecisionsPredicateAnswer`, `DecisionsPredicateCriteria`,
 `DecisionsPredicateQuestion`, `DecisionsQuestion`, `DecisionsRefusalAnswer`, `DecisionsRequest`, `DecisionsResponse`,

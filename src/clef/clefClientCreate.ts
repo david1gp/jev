@@ -2,11 +2,11 @@ import { createResult, createResultError, type PromiseResult, type Result } from
 import type { Questions } from "../shared/questions.js"
 import { systemOneClientCreate } from "../system/systemOneClientCreate.js"
 import type { SystemOneEvaluateOptions } from "../system/systemOneEvaluateOptions.js"
-import type { SystemOneRequest } from "../system/systemOneRequest.js"
 import type { SystemOneResponse } from "../system/systemOneResponse.js"
 import type { ClefClient } from "./clefClient.js"
 import type { ClefClientOptions } from "./clefClientOptions.js"
 import { clefFetchWrap } from "./clefFetchWrap.js"
+import type { ClefRequest } from "./clefRequest.js"
 
 const defaultModel = "clef"
 
@@ -39,7 +39,7 @@ export function clefClientCreate(options: ClefClientOptions): Result<ClefClient>
 
   const model = options.model ?? defaultModel
   const evaluate = async <Q extends Questions>(
-    request: SystemOneRequest<Q>,
+    request: ClefRequest<Q>,
     evaluateOptions: SystemOneEvaluateOptions = {},
   ): PromiseResult<SystemOneResponse<Q>> =>
     clientResult.data.evaluate(request.model === undefined ? { ...request, model } : request, evaluateOptions)

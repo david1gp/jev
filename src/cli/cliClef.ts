@@ -1,5 +1,5 @@
 import { createResult, createResultError, type Result } from "@adaptive-ds/result"
-import { clefClientCreate, type SystemOneRequest, type SystemOneResponse } from "../index.js"
+import { clefClientCreate, type ClefRequest, type SystemOneResponse } from "../index.js"
 
 type CliClefInput = {
   readonly requestInput: unknown
@@ -33,7 +33,7 @@ export async function cliClef(input: CliClefInput): Promise<Result<CliClefOutput
   const responses: SystemOneResponse[] = []
   for (const requestInput of requests) {
     const request = cliClefImagesApply(cliClefModelApply(requestInput, input.model), input.images)
-    const result = await clientResult.data.evaluate(request as SystemOneRequest)
+    const result = await clientResult.data.evaluate(request as ClefRequest)
     if (!result.success) {
       return {
         ...createResultError(op, result.errorMessage, result.errorData),
