@@ -1,8 +1,9 @@
 # @adaptive-ds/jev
 
-Result-based TypeScript client and command-line interface for TypeSafe System One. Send text or structured application
-state with named `choice`, `score`, and `noul` questions; receive validated, typed answers, probabilities, confidence,
-and token usage.
+Result-based TypeScript client and command-line interface for TypeSafe System One, Cloudflare Clef, and OpenAI
+Decisions. Send text or structured application state with named `choice`, `score`, and `noul`/`predicate` questions;
+receive validated, typed answers, probabilities, confidence, and token usage. Image input is supported for Clef and
+Decisions, and for System One requests once the upstream endpoint accepts it.
 
 `jev` is deliberately a Result-based client. Client creation and evaluation return Results instead of throwing or
 returning a promise that rejects for ordinary configuration, transport, HTTP, timeout, cancellation, or validation
@@ -12,6 +13,9 @@ failures. It is not a promise-rejection-compatible replacement for TypeSafe's of
 
 - [Install](#install)
 - [Library quick start](#library-quick-start)
+- [Cloudflare Clef](#cloudflare-clef)
+- [OpenAI Decisions](#openai-decisions)
+- [Images](#images)
 - [Primitives and public API](#primitives-and-public-api)
 - [State, questions, and batches](#state-questions-and-batches)
 - [CLI](#cli)
@@ -101,6 +105,104 @@ const result = await clientResult.data.evaluate({
 Import `noul` and `score` alongside `choice` when using those question types. TypeScript preserves question names and
 criteria in the response, so `answers.department` is a `ChoiceAnswer` in the first example.
 
+## Cloudflare Clef
+
+Clef (`@cf/cloudflare/clef`, plus the smaller `clef-flash`) is Cloudflare's Jev-API-compatible decision model family on
+Workers AI. `clefClientCreate` speaks the same state/questions/answers shapes through the Cloudflare REST envelope and
+unwraps it for you, so responses validate exactly like System One responses. It also supports the `images` extension.
+
+```ts
+import { choice, clefClientCreate } from "@adaptive-ds/jev"
+
+const clefResult = clefClientCreate({
+  apiToken: process.env.CLOUDFLARE_API_TOKEN ?? "",
+  accountId: process.env.CLOUDFLARE_ACCOUNT_ID ?? "",
+})
+
+if (clefResult.success) {
+  const responseResult = await clefResult.data.evaluate({
+    state: "Checkout has been failing for every customer for the last hour.",
+    questions: {
+      team: choice("Which team should handle this request?", {
+        billing: "Payments, invoices, and refunds",
+        technical: "Outages, errors, and configuration",
+      }),
+    },
+  })
+  if (responseResult.success) console.log(responseResult.data.answers.team.choice)
+}
+```
+
+Pass `baseUrl` instead of `accountId` to target a custom endpoint (AI Gateway, Ollama `.../v1/systemone`); non-Workers
+AI responses without the `{ result }` envelope pass through untouched. Pass `model` (default `"clef"`) to select
+`"clef-flash"`. The CLI equivalent is `jev clef`, which reads `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+
+## OpenAI Decisions
+
+The Decisions API (`POST /v1/decisions`, model `gpt-6-luna`) is OpenAI's Jev-variant endpoint: shared `input` evidence
+plus a `questions` array of `predicate`, `choice`, and `score` questions with inline `name` fields. Answers come back
+as an array and may include `refusal` entries.
+
+```ts
+import { decisionsChoice, decisionsClientCreate, decisionsPredicate } from "@adaptive-ds/jev"
+
+const decisionsResult = decisionsClientCreate({ apiKey: process.env.OPENAI_API_KEY ?? "" })
+
+if (decisionsResult.success) {
+  const responseResult = await decisionsResult.data.evaluate({
+    input: "I was charged twice for my order.",
+    questions: [
+      decisionsPredicate("duplicate_charge", "Was the customer charged more than once?"),
+      decisionsChoice("department", "Which department should handle this complaint?", {
+        billing: "Payments, invoices, and refunds.",
+        technical: "Problems using the product.",
+      }),
+    ],
+  })
+  if (responseResult.success) console.log(responseResult.data.answers)
+}
+```
+
+`decisionsChoice` takes a Jev-style record and converts it to the Decisions `choices` array; `decisionsScore` takes
+level labels (or `{ label, description }` objects, 2–10 levels). The CLI equivalents are `jev decide`,
+`jev decide-predicate`, `jev decide-choice`, and `jev decide-score`, which read `OPENAI_API_KEY`.
+
+## Images
+
+System One requests accept an optional `images` array (up to 4 PNG/JPEG/WebP entries as `data:` URLs or
+`{ content_type, base64 }` objects), placed before the state per the Clef vision extension:
+
+```ts
+const result = await client.data.evaluate({
+  state: "Inspect the product in this photo.",
+  questions: { visible_damage: noul("Does the product have visible damage?") },
+  images: ["data:image/png;base64,..."],
+})
+```
+
+Clef evaluates images today. The hosted Jev endpoint currently rejects image requests with HTTP 400; the library still
+validates and sends them so calls start working once upstream enables vision. Decisions takes images inline in the
+input instead:
+
+```ts
+await decisionsClient.data.evaluate({
+  input: [
+    {
+      role: "user",
+      content: [
+        { type: "input_text", text: "Inspect the product in this photo." },
+        { type: "input_image", image_url: "data:image/png;base64,..." },
+      ],
+    },
+  ],
+  questions: [decisionsPredicate("visible_damage", "Does the product have visible damage?")],
+})
+```
+
+Only inline base64 data URLs are accepted; hosted HTTP(S) URLs are rejected by validation. Runnable scripts for every
+provider live in `examples/` (`jev-text`, `jev-image`, `clef-text`, `clef-image`, `decisions-text`,
+`decisions-image`) with fixtures in `images/`.
+
 ## Primitives and public API
 
 ### Question helpers
@@ -163,11 +265,21 @@ import {
 } from "@adaptive-ds/jev"
 ```
 
-The root type exports are `Answer`, `ChoiceAnswer`, `ChoiceCriteria`, `ChoiceQuestion`, `ChoiceResponse`, `Description`,
+The root module also exports the Clef client (`clefClientCreate`, `clefFetchWrap`, types `ClefClient`,
+`ClefClientOptions`), the Decisions client (`decisionsClientCreate`, helpers `decisionsPredicate`, `decisionsChoice`,
+`decisionsScore`, schemas such as `decisionsRequestSchema`/`decisionsResponseSchema`, and the corresponding
+`Decisions*` types), and the System One image schema (`systemOneImageSchema`, type `SystemOneImage`).
+
+The root type exports are `Answer`, `ChoiceAnswer`, `ChoiceCriteria`, `ChoiceQuestion`, `ChoiceResponse`, `ClefClient`,
+`ClefClientOptions`, `DecisionsAnswer`, `DecisionsChoiceAnswer`, `DecisionsChoiceCriteria`, `DecisionsChoiceQuestion`,
+`DecisionsClient`, `DecisionsClientOptions`, `DecisionsEvaluateOptions`, `DecisionsFetch`, `DecisionsImagePart`,
+`DecisionsInput`, `DecisionsInputPart`, `DecisionsMessage`, `DecisionsPredicateAnswer`, `DecisionsPredicateCriteria`,
+`DecisionsPredicateQuestion`, `DecisionsQuestion`, `DecisionsRefusalAnswer`, `DecisionsRequest`, `DecisionsResponse`,
+`DecisionsScoreAnswer`, `DecisionsScoreLevels`, `DecisionsScoreQuestion`, `DecisionsTextPart`, `Description`,
 `EntryType`, `JsonValue`, `NoulAnswer`, `NoulCriteria`, `NoulQuestion`, `NoulResponse`, `Question`, `Questions`,
 `ResultFor`, `ScoreAnswer`, `ScoreCriteria`, `ScoreLegend`, `ScoreOf`, `ScoreQuestion`, `ScoreResponse`, `State`,
-`SystemOneClient`, `SystemOneClientOptions`, `SystemOneEvaluateOptions`, `SystemOneFetch`, `SystemOneRequest`,
-`SystemOneRequestPayload`, `SystemOneResponse`, `SystemOneResult`, and `Usage`.
+`SystemOneClient`, `SystemOneClientOptions`, `SystemOneEvaluateOptions`, `SystemOneFetch`, `SystemOneImage`,
+`SystemOneRequest`, `SystemOneRequestPayload`, `SystemOneResponse`, `SystemOneResult`, and `Usage`.
 
 `ResultFor<Question>` maps a question to its corresponding answer type. `ScoreLegend` and `ScoreOf` are type-only
 exports; all names in the import above are runtime values.
@@ -203,12 +315,22 @@ an array of responses in the same order. This is a CLI input convenience; it is 
 The available commands are:
 
 ```text
-jev evaluate   # evaluate one request or an array of requests from JSON
-jev choice     # evaluate one choice question
-jev score      # evaluate one score question
-jev noul       # evaluate one noul question
-jev version    # print version information
+jev evaluate         # evaluate one request or an array of requests from JSON (System One)
+jev choice           # evaluate one choice question
+jev score            # evaluate one score question
+jev noul             # evaluate one noul question
+jev clef             # evaluate one request or an array of requests with Cloudflare Clef
+jev decide           # evaluate one or an array of OpenAI Decisions JSON requests
+jev decide-predicate # evaluate one Decisions predicate question
+jev decide-choice    # evaluate one Decisions choice question
+jev decide-score     # evaluate one Decisions score question
+jev version          # print version information
 ```
+
+Every provider operation in the library has a CLI command: `evaluate`/`choice`/`score`/`noul` cover
+`systemOneClientCreate`, `clef` covers `clefClientCreate`, and `decide`/`decide-predicate`/`decide-choice`/`decide-score`
+cover `decisionsClientCreate`. `evaluate`, `choice`, `score`, `noul`, and `clef` accept `--images` as comma-separated
+image file paths, which are sent as base64 data URLs in the request `images` field.
 
 Use `jev --help` or `jev <command> --help` for the generated help. Global `--version` and the `-V` shorthand print the
 version.
@@ -273,6 +395,68 @@ For `choice` and `score`, `--criteria` and `--instructions` are required. For `n
 `--state` is required for every primitive command. `--name` defaults to `question`. All primitive commands also accept
 the common API, model, and timeout flags shown above.
 
+### Clef
+
+`clef` reads `CLOUDFLARE_API_TOKEN` (or `--api-key`/`-k`) and `CLOUDFLARE_ACCOUNT_ID` (or `--account-id`). Provide
+`--base-url`/`-b` instead of an account ID for AI Gateway or local endpoints, and `--model`/`-m` to select
+`clef-flash` (default `clef`):
+
+```sh
+export CLOUDFLARE_API_TOKEN="..."
+export CLOUDFLARE_ACCOUNT_ID="..."
+
+cat request.json | jev clef
+cat request.json | jev clef --model clef-flash --images photo.png
+```
+
+### Decisions
+
+`decide` reads `OPENAI_API_KEY` (or `--api-key`/`-k`), defaults to `https://api.openai.com/v1/decisions` (`--base-url`
+overrides, e.g. a proxy), and defaults the model to `gpt-6-luna`:
+
+```sh
+export OPENAI_API_KEY="..."
+
+cat decision.json | jev decide
+```
+
+`decision.json` can contain:
+
+```json
+{
+  "input": "I was charged twice for my order.",
+  "questions": [
+    {
+      "type": "choice",
+      "name": "department",
+      "instructions": "Which department should handle this complaint?",
+      "choices": [
+        { "value": "billing", "description": "Payments, invoices, and refunds." },
+        { "value": "technical", "description": "Problems using the product." }
+      ]
+    }
+  ]
+}
+```
+
+Primitive commands take `--input` as JSON (a text string or messages array with `input_text`/`input_image` parts),
+`--instructions` as a JSON string, and `--name` (default `question`). `--choices` takes a criteria record for
+`decide-choice`, `--levels` takes levels for `decide-score`, and `--criteria` is optional for `decide-predicate`.
+`--images` file paths are appended to the input as `input_image` parts; `--input` may be omitted when images are given:
+
+```sh
+jev decide-predicate \
+  --input '"Inspect the product in this photo."' \
+  --instructions '"Does the product have visible damage?"' \
+  --name visible_damage \
+  --images photo.png
+
+jev decide-choice \
+  --input '"I was charged twice."' \
+  --instructions '"Which team?"' \
+  --choices '{"billing":"Payments","technical":"Bugs"}'
+```
+
 Successful CLI output is compact JSON on stdout. Failures are compact JSON on stderr, set exit status `1`, and contain
 `success: false`, `op`, and `errorMessage`; safe underlying `code`, `errorData`, and `statusCode` fields are preserved when
 available.
@@ -281,8 +465,13 @@ available.
 
 The library requires an explicit API key; it does not read `JEV_API_KEY` itself. The CLI takes `--api-key`/`-k` first
 and otherwise reads `JEV_API_KEY`. Keys are sent only as `Authorization: Bearer <api-key>` and are not printed.
+`decide` commands fall back to `OPENAI_API_KEY`, and `clef` falls back to `CLOUDFLARE_API_TOKEN` plus
+`CLOUDFLARE_ACCOUNT_ID` (or `--account-id`).
 
-Client configuration is passed to `systemOneClientCreate`:
+Client configuration is passed to `systemOneClientCreate` (`decisionsClientCreate` takes the same transport options
+against `https://api.openai.com/v1/decisions` with default model `gpt-6-luna`; `clefClientCreate` takes
+`{ apiToken, accountId?, baseUrl?, model? }` plus the same transport options against the Workers AI Clef endpoint with
+default model `clef`):
 
 | Option | Default | Behavior |
 | --- | --- | --- |
@@ -334,6 +523,11 @@ bun run src/cli.ts evaluate --help
 bun run src/cli.ts choice --help
 bun run src/cli.ts score --help
 bun run src/cli.ts noul --help
+bun run src/cli.ts clef --help
+bun run src/cli.ts decide --help
+bun run src/cli.ts decide-predicate --help
+bun run src/cli.ts decide-choice --help
+bun run src/cli.ts decide-score --help
 bun run src/cli.ts version --verbose
 ```
 
@@ -341,10 +535,22 @@ Transport behavior can be tested without credentials by injecting `fetch` and `s
 `systemOneClientCreate`. Tests should cover request authentication and default model, validation, retryable statuses,
 `Retry-After`, timeout, cancellation, response validation, and redaction.
 
-The live integration test is opt-in and reads `JEV_API_KEY` from the process environment; it is skipped otherwise:
+The live integration test is opt-in and reads keys from the process environment; each provider is gated separately
+(`bun test` skips them otherwise). `CLEF_LIVE=1` adds Clef text, image, and CLI image calls; `DECISIONS_LIVE=1` adds
+Decisions text and image calls (`OPENAI_API_KEY`, or a proxy via `DECISIONS_BASE_URL`):
 
 ```sh
 JEV_LIVE=1 bun run test:live
+CLEF_LIVE=1 bun test test/live.integration.test.ts
+DECISIONS_LIVE=1 bun test test/live.integration.test.ts
+```
+
+Runnable provider examples live in `examples/` and use the same environment variables:
+
+```sh
+bun run examples/jev-text.ts
+bun run examples/clef-image.ts
+OPENAI_API_KEY="..." bun run examples/decisions-text.ts
 ```
 
 ## Links and license
