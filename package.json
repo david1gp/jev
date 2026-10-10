@@ -48,7 +48,7 @@
     "test": "bun test",
     "test:live": "bun run build && JEV_LIVE=1 bun test test/live.integration.test.ts",
     "test:w": "bun test --watch",
-    "type-check": "tsc --noEmit",
+    "type-check": "bun --check",
     "build": "rm -rf ./dist && tsc -p ./tsconfig.lib.json && chmod +x ./dist/cli.js",
     "deploy": "bash ./ops/deploy.sh",
     "release": "bash ./ops/release.sh",
