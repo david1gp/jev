@@ -36,9 +36,6 @@
   "readme": "README.md",
   "type": "module",
   "private": false,
-  "engines": {
-    "node": ">=22"
-  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
