@@ -258,3 +258,47 @@ test("returns timeout and caller cancellation as Result errors", async () => {
   if (!cancellationResult.success) expect(cancellationResult.errorMessage).toContain("cancelled")
   expect(cancellationCalls).toBe(1)
 })
+
+test("evaluates through the OpenRouter decisions endpoint with a provider model", async () => {
+  let input: string | URL | undefined
+  let init: RequestInit | undefined
+  const client = clientCreate(
+    async (requestInput, requestInit) => {
+      input = requestInput
+      init = requestInit
+      return new Response(
+        JSON.stringify({
+          model: "openai/gpt-6-luna-decisions",
+          answers: {
+            urgent: { type: "noul", noul: 0.7 },
+            route: {
+              type: "choice",
+              choice: "billing",
+              probabilities: { billing: 0.7, technical: 0.3 },
+              confidence: 0.6,
+            },
+          },
+          usage: { input_tokens: 12, output_tokens: 3, cost: 0.0001 },
+          id: "gen-openrouter-1",
+          provider: "OpenAI",
+        }),
+        { status: 200 },
+      )
+    },
+    { baseUrl: "https://openrouter.ai/api/alpha/decisions" },
+  )
+
+  const result = await client.evaluate({ ...request, model: "openai/gpt-6-luna-decisions" })
+
+  expect(result.success).toBe(true)
+  expect(input).toBe("https://openrouter.ai/api/alpha/decisions")
+  expect(init?.method).toBe("POST")
+  expect(new Headers(init?.headers).get("content-type")).toBe("application/json")
+  expect(JSON.parse(init?.body as string)).toEqual({ ...request, model: "openai/gpt-6-luna-decisions" })
+  if (result.success) {
+    expect(result.data.model).toBe("openai/gpt-6-luna-decisions")
+    expect(result.data.answers.urgent.noul).toBe(0.7)
+    expect(result.data.answers.route.choice).toBe("billing")
+    expect(result.data.usage).toEqual({ input_tokens: 12, output_tokens: 3 })
+  }
+})

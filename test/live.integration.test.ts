@@ -17,8 +17,14 @@ import {
   type SystemOneResponse,
 } from "../src/index.js"
 
-const apiKey = process.env.JEV_API_KEY
+const apiKey = process.env.OPENROUTER_API_KEY ?? process.env.JEV_API_KEY
+const liveBaseUrl = process.env.JEV_BASE_URL
+const liveModel = process.env.JEV_MODEL
 const liveEnabled = process.env.JEV_LIVE === "1" && apiKey !== undefined && apiKey.trim().length > 0
+const liveCliFlags: readonly string[] = [
+  ...(liveBaseUrl === undefined ? [] : ["--base-url", liveBaseUrl]),
+  ...(liveModel === undefined ? [] : ["--model", liveModel]),
+]
 
 test.skipIf(!liveEnabled)("evaluates all primitives through the library and plain Node CLI paths", async () => {
   const startedAt = new Date().toISOString()
@@ -29,6 +35,7 @@ test.skipIf(!liveEnabled)("evaluates all primitives through the library and plai
   }
   const clientResult = systemOneClientCreate({
     apiKey: apiKey as string,
+    ...(liveBaseUrl === undefined ? {} : { baseUrl: liveBaseUrl }),
     fetch: liveFetch,
     maxRetries: 0,
     timeoutMs: 30_000,
@@ -37,6 +44,7 @@ test.skipIf(!liveEnabled)("evaluates all primitives through the library and plai
   if (!clientResult.success) return
 
   const libraryResult = await clientResult.data.evaluate({
+    ...(liveModel === undefined ? {} : { model: liveModel }),
     state: "A customer says their payout failed and asks for help.",
     questions: {
       department: choice("Which team should handle this?", { billing: "Payments", other: null }),
@@ -54,6 +62,7 @@ test.skipIf(!liveEnabled)("evaluates all primitives through the library and plai
   const cliResults = [
     await cliLiveRun([
       "choice",
+      ...liveCliFlags,
       "--state",
       '"A customer asks about a payment."',
       "--instructions",
@@ -65,6 +74,7 @@ test.skipIf(!liveEnabled)("evaluates all primitives through the library and plai
     ]),
     await cliLiveRun([
       "score",
+      ...liveCliFlags,
       "--state",
       '"A customer reports a blocked payout."',
       "--instructions",
@@ -74,6 +84,7 @@ test.skipIf(!liveEnabled)("evaluates all primitives through the library and plai
     ]),
     await cliLiveRun([
       "noul",
+      ...liveCliFlags,
       "--state",
       '"A customer reports a failed payout."',
       "--instructions",
@@ -92,8 +103,8 @@ test.skipIf(!liveEnabled)("evaluates all primitives through the library and plai
     })
     const inputFile = join(directory, "request.json")
     await writeFile(inputFile, request)
-    const stdinResult = await cliLiveRun(["evaluate", "--input", "-"], request)
-    const fileResult = await cliLiveRun(["evaluate", "--file", inputFile])
+    const stdinResult = await cliLiveRun(["evaluate", ...liveCliFlags, "--input", "-"], request)
+    const fileResult = await cliLiveRun(["evaluate", ...liveCliFlags, "--file", inputFile])
     liveResponseAssert(stdinResult, { urgent: "noul" })
     liveResponseAssert(fileResult, { urgent: "noul" })
   } finally {
