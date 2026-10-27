@@ -79,7 +79,7 @@
     "provenance": true
   },
   "bin": {
-    "jev": "./dist/cli.js"
+    "jev": "dist/cli.js"
   },
   "peerDependencies": {
     "@adaptive-ds/result": "^0.6.0",
