@@ -138,12 +138,15 @@ if (clefResult.success) {
 Pass `baseUrl` instead of `accountId` to target a custom endpoint (AI Gateway, Ollama `.../v1/systemone`); non-Workers
 AI responses without the `{ result }` envelope pass through untouched. Pass `model` (default `"clef"`) to select
 `"clef-flash"`. The CLI equivalent is `jev clef`, which reads `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+Clef is also served on OpenRouter as `cloudflare/clef` (and `cloudflare/clef-flash`); see
+[OpenRouter](#openrouter).
 
 ## OpenAI Decisions
 
 The Decisions API (`POST /v1/decisions`, model `gpt-6-luna`) is OpenAI's Jev-variant endpoint: shared `input` evidence
 plus a `questions` array of `predicate`, `choice`, and `score` questions with inline `name` fields. Answers come back
-as an array and may include `refusal` entries. The Decisions client shipped in v0.2.0.
+as an array and may include `refusal` entries. OpenAI serves `gpt-6-luna` through its own Decisions API; both it and
+Microsoft's Decision-1 are served on OpenRouter — see [OpenRouter](#openrouter). The Decisions client shipped in v0.2.0.
 
 ```ts
 import { decisionsChoice, decisionsClientCreate, decisionsPredicate } from "@adaptive-ds/jev"
@@ -200,8 +203,19 @@ if (openRouterResult.success) {
 }
 ```
 
-Request `model` with an OpenRouter slug such as `openai/gpt-6-luna-decisions` or
-`microsoft/microsoft-decision-1` (`typesafe/jev-1.14` serves Jev itself).
+Request `model` with an OpenRouter slug such as
+[`openai/gpt-6-luna-decisions`](https://openrouter.ai/openai/gpt-6-luna-decisions)
+or
+[`microsoft/microsoft-decision-1`](https://openrouter.ai/microsoft/microsoft-decision-1)
+([`typesafe/jev-1.14`](https://openrouter.ai/typesafe/jev-1.14) serves Jev itself;
+[`cloudflare/clef`](https://openrouter.ai/cloudflare/clef) serves Clef). The
+[decision models list](https://openrouter.ai/models?output_modalities=decisions)
+catalogues every model on this endpoint — check the model page before you switch,
+as a few take their own `state` shapes. The [Decisions API
+reference](https://openrouter.ai/docs/api/api-reference/alphadecisions/submit-a-decisions-request.md)
+documents the request and response; the [Jev
+guide](https://openrouter.ai/docs/guides/community/jev) and
+[tutorial](https://openrouter.ai/docs/guides/community/jev-tutorial.md) walk through first calls.
 Responses validate like System One responses; the extra `usage.cost` field is
 ignored. The CLI equivalent is `jev evaluate` with `--base-url` and `--model`,
 reading the key from `JEV_API_KEY`:
@@ -608,6 +622,9 @@ OPENROUTER_API_KEY="..." bun run examples/openrouter-text.ts
 - [TypeSafe primitives](https://docs.typesafe.ai/primitives.md)
 - [TypeSafe API reference](https://docs.typesafe.ai/api.md)
 - [TypeSafe JavaScript SDK documentation](https://docs.typesafe.ai/sdk/javascript.md)
+- [OpenRouter Jev guide](https://openrouter.ai/docs/guides/community/jev)
+- [OpenRouter Jev tutorial](https://openrouter.ai/docs/guides/community/jev-tutorial.md)
+- [OpenRouter Decisions API reference](https://openrouter.ai/docs/api/api-reference/alphadecisions/submit-a-decisions-request.md)
 - [Source repository](https://github.com/david1gp/jev)
 - [Issues](https://github.com/david1gp/jev/issues)
 
