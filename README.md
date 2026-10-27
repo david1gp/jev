@@ -110,6 +110,7 @@ criteria in the response, so `answers.department` is a `ChoiceAnswer` in the fir
 Clef (`@cf/cloudflare/clef`, plus the smaller `clef-flash`) is Cloudflare's Jev-API-compatible decision model family on
 Workers AI. `clefClientCreate` speaks the same state/questions/answers shapes through the Cloudflare REST envelope and
 unwraps it for you, so responses validate exactly like System One responses. It also supports the `images` extension.
+The Clef client shipped in v0.2.0.
 
 ```ts
 import { choice, clefClientCreate } from "@adaptive-ds/jev"
@@ -141,7 +142,7 @@ AI responses without the `{ result }` envelope pass through untouched. Pass `mod
 
 The Decisions API (`POST /v1/decisions`, model `gpt-6-luna`) is OpenAI's Jev-variant endpoint: shared `input` evidence
 plus a `questions` array of `predicate`, `choice`, and `score` questions with inline `name` fields. Answers come back
-as an array and may include `refusal` entries.
+as an array and may include `refusal` entries. The Decisions client shipped in v0.2.0.
 
 ```ts
 import { decisionsChoice, decisionsClientCreate, decisionsPredicate } from "@adaptive-ds/jev"
