@@ -15,6 +15,7 @@ failures. It is not a promise-rejection-compatible replacement for TypeSafe's of
 - [Library quick start](#library-quick-start)
 - [Cloudflare Clef](#cloudflare-clef)
 - [OpenAI Decisions](#openai-decisions)
+- [OpenRouter](#openrouter)
 - [Images](#images)
 - [Primitives and public API](#primitives-and-public-api)
 - [State, questions, and batches](#state-questions-and-batches)
@@ -168,6 +169,49 @@ if (decisionsResult.success) {
 level labels (or `{ label, description }` objects, 2–10 levels). The CLI equivalents are `jev decide`,
 `jev decide-predicate`, `jev decide-choice`, and `jev decide-score`, which read `OPENAI_API_KEY`.
 
+## OpenRouter
+
+OpenRouter serves decision models from many makers behind one endpoint,
+`POST https://openrouter.ai/api/alpha/decisions`, using the same
+state/questions/answers shapes as System One. Point the System One client at it
+with an `OPENROUTER_API_KEY` — not the Decisions client, which speaks OpenAI's
+direct-only `input` shape:
+
+```ts
+import { choice, systemOneClientCreate } from "@adaptive-ds/jev"
+
+const openRouterResult = systemOneClientCreate({
+  apiKey: process.env.OPENROUTER_API_KEY ?? "",
+  baseUrl: "https://openrouter.ai/api/alpha/decisions",
+})
+
+if (openRouterResult.success) {
+  const responseResult = await openRouterResult.data.evaluate({
+    model: "openai/gpt-6-luna-decisions",
+    state: "I was charged twice for my order.",
+    questions: {
+      department: choice("Which department should handle this complaint?", {
+        billing: "Payments, invoices, and refunds.",
+        technical: "Problems using the product.",
+      }),
+    },
+  })
+  if (responseResult.success) console.log(responseResult.data.answers.department.choice)
+}
+```
+
+Request `model` with an OpenRouter slug such as `openai/gpt-6-luna-decisions` or
+`microsoft/microsoft-decision-1` (`typesafe/jev-1.14` serves Jev itself).
+Responses validate like System One responses; the extra `usage.cost` field is
+ignored. The CLI equivalent is `jev evaluate` with `--base-url` and `--model`,
+reading the key from `JEV_API_KEY`:
+
+```sh
+export JEV_API_KEY="..."
+
+cat request.json | jev evaluate --base-url https://openrouter.ai/api/alpha/decisions --model openai/gpt-6-luna-decisions
+```
+
 ## Images
 
 Image input is typed per provider. `SystemOneRequest` carries no `images` field — hosted Jev is text-only and rejects
@@ -203,7 +247,7 @@ await decisionsClient.data.evaluate({
 
 Only inline base64 data URLs are accepted; hosted HTTP(S) URLs are rejected by validation. Runnable scripts for every
 provider live in `examples/` (`jev-text`, `jev-image`, `clef-text`, `clef-image`, `decisions-text`,
-`decisions-image`) with fixtures in `images/`.
+`decisions-image`, `openrouter-text`) with fixtures in `images/`.
 
 ## Primitives and public API
 
@@ -539,7 +583,9 @@ Transport behavior can be tested without credentials by injecting `fetch` and `s
 
 The live integration test is opt-in and reads keys from the process environment; each provider is gated separately
 (`bun test` skips them otherwise). `CLEF_LIVE=1` adds Clef text, image, and CLI image calls; `DECISIONS_LIVE=1` adds
-Decisions text and image calls (`OPENAI_API_KEY`, or a proxy via `DECISIONS_BASE_URL`):
+Decisions text and image calls (`OPENAI_API_KEY`, or a proxy via `DECISIONS_BASE_URL`). Point the System One calls
+at OpenRouter with `JEV_BASE_URL=https://openrouter.ai/api/alpha/decisions` plus `OPENROUTER_API_KEY` (or
+`JEV_API_KEY`) and a provider slug via `JEV_MODEL` (e.g. `openai/gpt-6-luna-decisions`):
 
 ```sh
 JEV_LIVE=1 bun run test:live
@@ -553,6 +599,7 @@ Runnable provider examples live in `examples/` and use the same environment vari
 bun run examples/jev-text.ts
 bun run examples/clef-image.ts
 OPENAI_API_KEY="..." bun run examples/decisions-text.ts
+OPENROUTER_API_KEY="..." bun run examples/openrouter-text.ts
 ```
 
 ## Links and license
